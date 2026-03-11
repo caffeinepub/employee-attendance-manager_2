@@ -1,0 +1,102 @@
+@font-face {
+  font-family: "Cabinet Grotesk";
+  src: url("/assets/fonts/CabinetGrotesk-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Sora";
+  src: url("/assets/fonts/Sora-Variable.woff2") format("woff2");
+  font-weight: 100 800;
+  font-display: swap;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Dark industrial theme — deep slate + teal accent */
+    --background: 0.18 0.012 250;
+    --foreground: 0.94 0.01 240;
+
+    --card: 0.22 0.014 248;
+    --card-foreground: 0.94 0.01 240;
+
+    --popover: 0.22 0.014 248;
+    --popover-foreground: 0.94 0.01 240;
+
+    --primary: 0.72 0.17 185;
+    --primary-foreground: 0.12 0.02 240;
+
+    --secondary: 0.28 0.018 248;
+    --secondary-foreground: 0.88 0.01 240;
+
+    --muted: 0.26 0.016 248;
+    --muted-foreground: 0.62 0.02 248;
+
+    --accent: 0.72 0.17 185;
+    --accent-foreground: 0.12 0.02 240;
+
+    --destructive: 0.62 0.22 25;
+    --destructive-foreground: 0.98 0.01 0;
+
+    --border: 0.3 0.018 248;
+    --input: 0.26 0.016 248;
+    --ring: 0.72 0.17 185;
+
+    --radius: 0.5rem;
+
+    --chart-1: 0.72 0.17 185;
+    --chart-2: 0.65 0.15 155;
+    --chart-3: 0.58 0.18 205;
+    --chart-4: 0.75 0.14 95;
+    --chart-5: 0.62 0.22 25;
+
+    --sidebar: 0.15 0.014 250;
+    --sidebar-foreground: 0.94 0.01 240;
+    --sidebar-primary: 0.72 0.17 185;
+    --sidebar-primary-foreground: 0.12 0.02 240;
+    --sidebar-accent: 0.2 0.016 248;
+    --sidebar-accent-foreground: 0.88 0.01 240;
+    --sidebar-border: 0.22 0.014 248;
+    --sidebar-ring: 0.72 0.17 185;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-display;
+  }
+}
+
+@layer utilities {
+  .timer-font {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.05em;
+  }
+
+  .sidebar-glow {
+    box-shadow: inset -1px 0 0 oklch(var(--sidebar-border));
+  }
+}
