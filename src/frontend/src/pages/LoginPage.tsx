@@ -40,12 +40,13 @@ export default function LoginPage({ onLogin }: Props) {
       } else if (msg.includes("Not connected")) {
         setError("Still connecting to server, please try again.");
       } else {
-        setError("Invalid username or password.");
+        // Unexpected error (network, canister issue) - guide user to retry
+        setError("Connection issue. Please wait a moment and try again.");
       }
     }
   }
 
-  const isConnecting = isActorLoading && !actor;
+  const isConnecting = isActorLoading || !actor;
 
   return (
     <div

@@ -5,6 +5,29 @@ import { createActorWithConfig } from "../config";
 import { useInternetIdentity } from "./useInternetIdentity";
 
 const ACTOR_QUERY_KEY = "actor";
+
+async function createVerifiedActor(
+  options?: Parameters<typeof createActorWithConfig>[0],
+): Promise<backendInterface> {
+  const actor = await createActorWithConfig(options);
+  // Verify the backend is actually reachable by calling ping with retries
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      await (
+        actor as backendInterface & { ping: () => Promise<boolean> }
+      ).ping();
+      return actor;
+    } catch (e) {
+      lastError = e;
+      if (attempt < 4) {
+        await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+      }
+    }
+  }
+  throw lastError;
+}
+
 export function useActor() {
   const { identity } = useInternetIdentity();
   const queryClient = useQueryClient();
@@ -14,43 +37,32 @@ export function useActor() {
       const isAuthenticated = !!identity;
 
       if (!isAuthenticated) {
-        // Return anonymous actor if not authenticated
-        return await createActorWithConfig();
+        return await createVerifiedActor();
       }
 
-      const actorOptions = {
-        agentOptions: {
-          identity,
-        },
-      };
-
-      const actor = await createActorWithConfig(actorOptions);
-      return actor;
+      return await createVerifiedActor({
+        agentOptions: { identity },
+      });
     },
-    // Only refetch when identity changes
     staleTime: Number.POSITIVE_INFINITY,
-    // This will cause the actor to be recreated when the identity changes
+    retry: 3,
+    retryDelay: 2000,
     enabled: true,
   });
 
-  // When the actor changes, invalidate dependent queries
   useEffect(() => {
     if (actorQuery.data) {
       queryClient.invalidateQueries({
-        predicate: (query) => {
-          return !query.queryKey.includes(ACTOR_QUERY_KEY);
-        },
+        predicate: (query) => !query.queryKey.includes(ACTOR_QUERY_KEY),
       });
       queryClient.refetchQueries({
-        predicate: (query) => {
-          return !query.queryKey.includes(ACTOR_QUERY_KEY);
-        },
+        predicate: (query) => !query.queryKey.includes(ACTOR_QUERY_KEY),
       });
     }
   }, [actorQuery.data, queryClient]);
 
   return {
     actor: actorQuery.data || null,
-    isFetching: actorQuery.isFetching,
+    isFetching: actorQuery.isFetching || actorQuery.isLoading,
   };
 }

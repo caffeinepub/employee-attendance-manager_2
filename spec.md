@@ -1,38 +1,22 @@
 # Employee Attendance Manager
 
 ## Current State
-New project. No existing code.
+Login page shows "Connecting to server..." based on whether the JS actor object is created. However, creating the actor object does not verify the backend canister is actually responding. If login is attempted right after the actor is created but before the canister is ready, any backend error (network, canister cold-start, etc.) surfaces as "Invalid username or password."
 
 ## Requested Changes (Diff)
 
 ### Add
-- Login page with username/password for admin and employee roles
-- Admin panel:
-  - Set store GPS location (used as geofence center)
-  - Add new employees (username, password, daily salary)
-  - Manual attendance entry (select employee, set check-in/check-out times)
-  - View all attendance records in a table
-  - Real-time check-in notifications feed
-  - Salary report: calculate pay based on hours worked and daily salary rate
-  - Export attendance records as CSV
-- Employee panel:
-  - Welcome greeting with employee name
-  - Display current GPS coordinates
-  - Check In button: verifies employee is within 200m of store location, records time
-  - Live work timer (HH:MM:SS) counting up from check-in
-  - Check Out button: records checkout time, computes hours worked
-  - Auto-reset after 10 hours
-- Persistent backend storage for users, attendance records, and store location
+- `ping` query function to backend that simply returns `true`
+- Actor readiness check in `useActor`: after actor is created, call `ping()` to confirm backend is responsive; only mark actor as ready once ping succeeds
 
 ### Modify
-N/A
+- `useActor` hook: add ping verification step so `actor` is only non-null when the backend has confirmed it is reachable
+- `LoginPage`: distinguish between credential errors and connection/unexpected errors with clearer messages
 
 ### Remove
-N/A
+- Nothing
 
 ## Implementation Plan
-1. Motoko backend: store employees, attendance records, store location (lat/lon)
-2. Backend APIs: login, addEmployee, getEmployees, checkIn, checkOut, getAttendance, setStoreLocation, getStoreLocation, manualAttendance
-3. Frontend: login page, admin dashboard (tabs: attendance, employees, salary, notifications), employee dashboard with GPS check-in/timer
-4. GPS distance calculation in frontend using Haversine formula
-5. CSV export from attendance data
+1. Add `public query func ping() : async Bool` to `src/backend/main.mo`
+2. Update `useActor.ts` to call `actor.ping()` after creation and only return a ready actor on success, retrying on failure
+3. Update `LoginPage.tsx` error handling to show "Connection error, please try again" for non-credential errors

@@ -91,6 +91,9 @@ actor {
     };
   };
 
+  // Health check
+  public query func ping() : async Bool { true };
+
   // Login
   public query func login(username : Text, password : Text) : async UserData {
     switch (usersMap.get(username)) {
