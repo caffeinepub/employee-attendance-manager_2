@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useActor } from "@/hooks/useActor";
 import { useLogin } from "@/hooks/useQueries";
 import { Clock, Loader2, ShieldCheck } from "lucide-react";
 import { motion } from "motion/react";
@@ -17,18 +18,34 @@ export default function LoginPage({ onLogin }: Props) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
+  const { actor, isFetching: isActorLoading } = useActor();
   const loginMutation = useLogin();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
+    if (!actor) {
+      setError("Still connecting to server, please try again in a moment.");
+      return;
+    }
+
     try {
       const user = await loginMutation.mutateAsync({ username, password });
       onLogin(user);
-    } catch {
-      setError("Invalid username or password");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("User not found") || msg.includes("Wrong password")) {
+        setError("Invalid username or password.");
+      } else if (msg.includes("Not connected")) {
+        setError("Still connecting to server, please try again.");
+      } else {
+        setError("Invalid username or password.");
+      }
     }
   }
+
+  const isConnecting = isActorLoading && !actor;
 
   return (
     <div
@@ -67,7 +84,7 @@ export default function LoginPage({ onLogin }: Props) {
             <div className="flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-primary" />
               <span className="text-sm font-medium text-muted-foreground">
-                Secure Sign In
+                {isConnecting ? "Connecting to server..." : "Secure Sign In"}
               </span>
             </div>
           </CardHeader>
@@ -84,6 +101,7 @@ export default function LoginPage({ onLogin }: Props) {
                   onChange={(e) => setUsername(e.target.value)}
                   autoComplete="username"
                   required
+                  disabled={isConnecting}
                   className="bg-muted/50 border-border focus:border-primary"
                 />
               </div>
@@ -98,6 +116,7 @@ export default function LoginPage({ onLogin }: Props) {
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
                   required
+                  disabled={isConnecting}
                   className="bg-muted/50 border-border focus:border-primary"
                 />
               </div>
@@ -117,12 +136,16 @@ export default function LoginPage({ onLogin }: Props) {
                 data-ocid="login.submit_button"
                 type="submit"
                 className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold"
-                disabled={loginMutation.isPending}
+                disabled={loginMutation.isPending || isConnecting}
               >
-                {loginMutation.isPending ? (
+                {loginMutation.isPending || isConnecting ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : null}
-                {loginMutation.isPending ? "Signing in..." : "Sign In"}
+                {isConnecting
+                  ? "Connecting..."
+                  : loginMutation.isPending
+                    ? "Signing in..."
+                    : "Sign In"}
               </Button>
             </form>
           </CardContent>

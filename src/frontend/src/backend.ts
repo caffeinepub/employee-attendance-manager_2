@@ -93,6 +93,12 @@ export interface Location {
     latitude: number;
     longitude: number;
 }
+export interface Check {
+    status: string;
+    updatedDate: string;
+    employeeId: string;
+    notes: string;
+}
 export interface UserData {
     username: string;
     password: string;
@@ -120,9 +126,11 @@ export interface backendInterface {
     checkIn(employeeId: string, employeeName: string, date: string, checkInTime: string): Promise<void>;
     checkOut(employeeId: string, checkOutTime: string, hoursWorked: bigint): Promise<void>;
     getAllAttendance(): Promise<Array<[string, Array<Record_>]>>;
+    getAllBackgroundChecks(): Promise<Array<Check>>;
     getAllEmployees(): Promise<Array<UserData>>;
     getStoreLocation(): Promise<Location | null>;
     login(username: string, password: string): Promise<UserData>;
+    setBackgroundCheck(employeeId: string, status: string, notes: string, updatedDate: string): Promise<void>;
     setStoreLocation(latitude: number, longitude: number): Promise<void>;
 }
 import type { Location as _Location, Record as _Record, Role as _Role, UserData as _UserData } from "./declarations/backend.did.d.ts";
@@ -198,6 +206,20 @@ export class Backend implements backendInterface {
             return from_candid_vec_n3(this._uploadFile, this._downloadFile, result);
         }
     }
+    async getAllBackgroundChecks(): Promise<Array<Check>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAllBackgroundChecks();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAllBackgroundChecks();
+            return result;
+        }
+    }
     async getAllEmployees(): Promise<Array<UserData>> {
         if (this.processError) {
             try {
@@ -238,6 +260,20 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.login(arg0, arg1);
             return from_candid_UserData_n11(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async setBackgroundCheck(arg0: string, arg1: string, arg2: string, arg3: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.setBackgroundCheck(arg0, arg1, arg2, arg3);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.setBackgroundCheck(arg0, arg1, arg2, arg3);
+            return result;
         }
     }
     async setStoreLocation(arg0: number, arg1: number): Promise<void> {

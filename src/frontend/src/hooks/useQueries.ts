@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Location, Record_, UserData } from "../backend.d";
+import type { Check, Location, Record_, UserData } from "../backend.d";
 import { useActor } from "./useActor";
 
 export function useLogin() {
@@ -159,5 +159,39 @@ export function useCheckOut() {
       );
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["attendance"] }),
+  });
+}
+
+export function useGetAllBackgroundChecks() {
+  const { actor, isFetching } = useActor();
+  return useQuery<Check[]>({
+    queryKey: ["backgroundChecks"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getAllBackgroundChecks();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useSetBackgroundCheck() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      employeeId: string;
+      status: string;
+      notes: string;
+      updatedDate: string;
+    }) => {
+      if (!actor) throw new Error("Not connected");
+      return actor.setBackgroundCheck(
+        args.employeeId,
+        args.status,
+        args.notes,
+        args.updatedDate,
+      );
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["backgroundChecks"] }),
   });
 }

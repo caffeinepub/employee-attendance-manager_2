@@ -10,6 +10,12 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export interface Check {
+  'status' : string,
+  'updatedDate' : string,
+  'employeeId' : string,
+  'notes' : string,
+}
 export interface Location { 'latitude' : number, 'longitude' : number }
 export interface Record {
   'isManual' : boolean,
@@ -39,9 +45,14 @@ export interface _SERVICE {
   'checkIn' : ActorMethod<[string, string, string, string], undefined>,
   'checkOut' : ActorMethod<[string, string, bigint], undefined>,
   'getAllAttendance' : ActorMethod<[], Array<[string, Array<Record>]>>,
+  'getAllBackgroundChecks' : ActorMethod<[], Array<Check>>,
   'getAllEmployees' : ActorMethod<[], Array<UserData>>,
   'getStoreLocation' : ActorMethod<[], [] | [Location]>,
   'login' : ActorMethod<[string, string], UserData>,
+  'setBackgroundCheck' : ActorMethod<
+    [string, string, string, string],
+    undefined
+  >,
   'setStoreLocation' : ActorMethod<[number, number], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;

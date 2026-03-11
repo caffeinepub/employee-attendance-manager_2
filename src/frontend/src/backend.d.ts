@@ -11,6 +11,12 @@ export interface Location {
     latitude: number;
     longitude: number;
 }
+export interface Check {
+    status: string;
+    updatedDate: string;
+    employeeId: string;
+    notes: string;
+}
 export interface UserData {
     username: string;
     password: string;
@@ -38,8 +44,10 @@ export interface backendInterface {
     checkIn(employeeId: string, employeeName: string, date: string, checkInTime: string): Promise<void>;
     checkOut(employeeId: string, checkOutTime: string, hoursWorked: bigint): Promise<void>;
     getAllAttendance(): Promise<Array<[string, Array<Record_>]>>;
+    getAllBackgroundChecks(): Promise<Array<Check>>;
     getAllEmployees(): Promise<Array<UserData>>;
     getStoreLocation(): Promise<Location | null>;
     login(username: string, password: string): Promise<UserData>;
+    setBackgroundCheck(employeeId: string, status: string, notes: string, updatedDate: string): Promise<void>;
     setStoreLocation(latitude: number, longitude: number): Promise<void>;
 }

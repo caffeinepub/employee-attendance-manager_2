@@ -17,6 +17,12 @@ export const Record = IDL.Record({
   'employeeId' : IDL.Text,
   'checkOutTime' : IDL.Opt(IDL.Text),
 });
+export const Check = IDL.Record({
+  'status' : IDL.Text,
+  'updatedDate' : IDL.Text,
+  'employeeId' : IDL.Text,
+  'notes' : IDL.Text,
+});
 export const Role = IDL.Variant({ 'admin' : IDL.Null, 'employee' : IDL.Null });
 export const UserData = IDL.Record({
   'username' : IDL.Text,
@@ -52,9 +58,15 @@ export const idlService = IDL.Service({
       [IDL.Vec(IDL.Tuple(IDL.Text, IDL.Vec(Record)))],
       ['query'],
     ),
+  'getAllBackgroundChecks' : IDL.Func([], [IDL.Vec(Check)], ['query']),
   'getAllEmployees' : IDL.Func([], [IDL.Vec(UserData)], ['query']),
   'getStoreLocation' : IDL.Func([], [IDL.Opt(Location)], ['query']),
   'login' : IDL.Func([IDL.Text, IDL.Text], [UserData], ['query']),
+  'setBackgroundCheck' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Text, IDL.Text],
+      [],
+      [],
+    ),
   'setStoreLocation' : IDL.Func([IDL.Float64, IDL.Float64], [], []),
 });
 
@@ -69,6 +81,12 @@ export const idlFactory = ({ IDL }) => {
     'checkInTime' : IDL.Text,
     'employeeId' : IDL.Text,
     'checkOutTime' : IDL.Opt(IDL.Text),
+  });
+  const Check = IDL.Record({
+    'status' : IDL.Text,
+    'updatedDate' : IDL.Text,
+    'employeeId' : IDL.Text,
+    'notes' : IDL.Text,
   });
   const Role = IDL.Variant({ 'admin' : IDL.Null, 'employee' : IDL.Null });
   const UserData = IDL.Record({
@@ -105,9 +123,15 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(IDL.Tuple(IDL.Text, IDL.Vec(Record)))],
         ['query'],
       ),
+    'getAllBackgroundChecks' : IDL.Func([], [IDL.Vec(Check)], ['query']),
     'getAllEmployees' : IDL.Func([], [IDL.Vec(UserData)], ['query']),
     'getStoreLocation' : IDL.Func([], [IDL.Opt(Location)], ['query']),
     'login' : IDL.Func([IDL.Text, IDL.Text], [UserData], ['query']),
+    'setBackgroundCheck' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Text, IDL.Text],
+        [],
+        [],
+      ),
     'setStoreLocation' : IDL.Func([IDL.Float64, IDL.Float64], [], []),
   });
 };

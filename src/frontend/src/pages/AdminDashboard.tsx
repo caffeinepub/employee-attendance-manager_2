@@ -26,12 +26,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import {
   useAddEmployee,
   useAddManualAttendance,
   useGetAllAttendance,
+  useGetAllBackgroundChecks,
   useGetAllEmployees,
   useGetStoreLocation,
+  useSetBackgroundCheck,
   useSetStoreLocation,
 } from "@/hooks/useQueries";
 import {
@@ -45,6 +48,7 @@ import {
   MapPin,
   Plus,
   RefreshCw,
+  ShieldCheck,
   Users,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -63,6 +67,21 @@ interface Props {
   notifications: Notification[];
 }
 
+const BG_STATUSES = ["Pending", "In Progress", "Cleared", "Failed"] as const;
+
+function statusBadgeClass(status: string) {
+  switch (status) {
+    case "Cleared":
+      return "bg-green-500/15 text-green-700 border-green-500/30 dark:text-green-400";
+    case "Failed":
+      return "bg-red-500/15 text-red-700 border-red-500/30 dark:text-red-400";
+    case "In Progress":
+      return "bg-blue-500/15 text-blue-700 border-blue-500/30 dark:text-blue-400";
+    default:
+      return "bg-yellow-500/15 text-yellow-700 border-yellow-500/30 dark:text-yellow-400";
+  }
+}
+
 export default function AdminDashboard({
   user,
   onLogout,
@@ -73,10 +92,13 @@ export default function AdminDashboard({
   const { data: employees = [], refetch: refetchEmployees } =
     useGetAllEmployees();
   const { data: storeLocation } = useGetStoreLocation();
+  const { data: bgChecks = [], isLoading: bgChecksLoading } =
+    useGetAllBackgroundChecks();
 
   const setStoreMutation = useSetStoreLocation();
   const addEmployeeMutation = useAddEmployee();
   const addManualMutation = useAddManualAttendance();
+  const setBgCheckMutation = useSetBackgroundCheck();
 
   // Salary state
   const [salaryData, setSalaryData] = useState<
@@ -98,6 +120,13 @@ export default function AdminDashboard({
     date: new Date().toISOString().split("T")[0],
     checkIn: "",
     checkOut: "",
+  });
+
+  // Background check inline edit state: employeeId -> {status, notes}
+  const [editingBgCheck, setEditingBgCheck] = useState<string | null>(null);
+  const [bgEditForm, setBgEditForm] = useState({
+    status: "Pending",
+    notes: "",
   });
 
   function handleSetStoreLocation() {
@@ -212,6 +241,32 @@ export default function AdminDashboard({
     link.click();
   }
 
+  function openBgEdit(employeeId: string) {
+    const existing = bgChecks.find((c) => c.employeeId === employeeId);
+    setBgEditForm({
+      status: existing?.status || "Pending",
+      notes: existing?.notes || "",
+    });
+    setEditingBgCheck(employeeId);
+  }
+
+  async function handleSaveBgCheck(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingBgCheck) return;
+    try {
+      await setBgCheckMutation.mutateAsync({
+        employeeId: editingBgCheck,
+        status: bgEditForm.status,
+        notes: bgEditForm.notes,
+        updatedDate: new Date().toISOString().split("T")[0],
+      });
+      toast.success("Background check updated");
+      setEditingBgCheck(null);
+    } catch {
+      toast.error("Failed to update background check");
+    }
+  }
+
   // Flatten attendance records
   const allRecords = attendance.flatMap(([, recs]) => recs);
 
@@ -261,7 +316,7 @@ export default function AdminDashboard({
         </div>
 
         <Tabs defaultValue="attendance">
-          <TabsList className="bg-muted/50 mb-6">
+          <TabsList className="bg-muted/50 mb-6 flex-wrap h-auto gap-1">
             <TabsTrigger data-ocid="admin.attendance.tab" value="attendance">
               <Clock className="w-4 h-4 mr-1.5" />
               Attendance
@@ -273,6 +328,10 @@ export default function AdminDashboard({
             <TabsTrigger data-ocid="admin.salary.tab" value="salary">
               <DollarSign className="w-4 h-4 mr-1.5" />
               Salary
+            </TabsTrigger>
+            <TabsTrigger data-ocid="admin.bgcheck.tab" value="bgcheck">
+              <ShieldCheck className="w-4 h-4 mr-1.5" />
+              Background Check
             </TabsTrigger>
             <TabsTrigger
               data-ocid="admin.notifications.tab"
@@ -812,6 +871,204 @@ export default function AdminDashboard({
                     </TableBody>
                   </Table>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* BACKGROUND CHECK TAB */}
+          <TabsContent value="bgcheck" className="space-y-6">
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-primary" />
+                  Background Checks
+                  <Badge variant="outline" className="ml-1 text-xs">
+                    {employeeList.length}
+                  </Badge>
+                </CardTitle>
+                <CardDescription>
+                  Track and manage employee background verification status
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                {bgChecksLoading ? (
+                  <div
+                    className="flex items-center justify-center py-12 text-muted-foreground gap-2"
+                    data-ocid="admin.bgcheck.loading_state"
+                  >
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="text-sm">Loading background checks…</span>
+                  </div>
+                ) : employeeList.length === 0 ? (
+                  <div
+                    className="text-center py-12 text-muted-foreground"
+                    data-ocid="admin.bgcheck.empty_state"
+                  >
+                    <ShieldCheck className="w-10 h-10 mx-auto mb-3 opacity-20" />
+                    <p className="text-sm">No employees to review</p>
+                    <p className="text-xs mt-1">
+                      Add employees first from the Employees tab
+                    </p>
+                  </div>
+                ) : (
+                  <div
+                    data-ocid="admin.bgcheck.table"
+                    className="overflow-x-auto"
+                  >
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-border hover:bg-transparent">
+                          <TableHead className="text-muted-foreground text-xs">
+                            Employee ID
+                          </TableHead>
+                          <TableHead className="text-muted-foreground text-xs">
+                            Name
+                          </TableHead>
+                          <TableHead className="text-muted-foreground text-xs">
+                            Status
+                          </TableHead>
+                          <TableHead className="text-muted-foreground text-xs">
+                            Last Updated
+                          </TableHead>
+                          <TableHead className="text-muted-foreground text-xs">
+                            Notes
+                          </TableHead>
+                          <TableHead className="text-muted-foreground text-xs">
+                            Action
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {employeeList.map((emp, i) => {
+                          const check = bgChecks.find(
+                            (c) => c.employeeId === emp.employeeId,
+                          );
+                          const status = check?.status || "Pending";
+                          const isEditing = editingBgCheck === emp.employeeId;
+                          return (
+                            <>
+                              <TableRow
+                                key={emp.employeeId || emp.username}
+                                className="border-border"
+                                data-ocid={`admin.bgcheck.row.${i + 1}`}
+                              >
+                                <TableCell className="font-mono text-xs text-muted-foreground">
+                                  {emp.employeeId}
+                                </TableCell>
+                                <TableCell className="font-medium text-sm">
+                                  {emp.name || emp.username}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
+                                    variant="outline"
+                                    className={`text-[11px] font-medium border ${statusBadgeClass(status)}`}
+                                  >
+                                    {status}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-sm text-muted-foreground">
+                                  {check?.updatedDate || <span>—</span>}
+                                </TableCell>
+                                <TableCell className="text-sm max-w-[180px] truncate text-muted-foreground">
+                                  {check?.notes || <span>—</span>}
+                                </TableCell>
+                                <TableCell>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-xs border-primary/40 text-primary hover:bg-primary/10"
+                                    data-ocid={`admin.bgcheck.update.button.${i + 1}`}
+                                    onClick={() =>
+                                      isEditing
+                                        ? setEditingBgCheck(null)
+                                        : openBgEdit(emp.employeeId || "")
+                                    }
+                                  >
+                                    {isEditing ? "Cancel" : "Update"}
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                              {isEditing && (
+                                <TableRow
+                                  key={`${emp.employeeId}-edit`}
+                                  className="border-border bg-muted/20"
+                                >
+                                  <TableCell colSpan={6} className="py-4 px-4">
+                                    <motion.form
+                                      initial={{ opacity: 0, y: -8 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      onSubmit={handleSaveBgCheck}
+                                      className="flex flex-col sm:flex-row gap-3 items-start sm:items-end"
+                                    >
+                                      <div className="space-y-1 min-w-[160px]">
+                                        <Label className="text-xs text-muted-foreground">
+                                          Status
+                                        </Label>
+                                        <Select
+                                          value={bgEditForm.status}
+                                          onValueChange={(v) =>
+                                            setBgEditForm((p) => ({
+                                              ...p,
+                                              status: v,
+                                            }))
+                                          }
+                                        >
+                                          <SelectTrigger
+                                            data-ocid="admin.bgcheck.status.select"
+                                            className="bg-background text-sm h-8"
+                                          >
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {BG_STATUSES.map((s) => (
+                                              <SelectItem key={s} value={s}>
+                                                {s}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      <div className="space-y-1 flex-1">
+                                        <Label className="text-xs text-muted-foreground">
+                                          Notes
+                                        </Label>
+                                        <Textarea
+                                          data-ocid="admin.bgcheck.notes.input"
+                                          value={bgEditForm.notes}
+                                          onChange={(e) =>
+                                            setBgEditForm((p) => ({
+                                              ...p,
+                                              notes: e.target.value,
+                                            }))
+                                          }
+                                          placeholder="Add notes about the background check…"
+                                          rows={2}
+                                          className="bg-background text-sm resize-none"
+                                        />
+                                      </div>
+                                      <Button
+                                        data-ocid="admin.bgcheck.save.submit_button"
+                                        type="submit"
+                                        size="sm"
+                                        className="bg-primary text-primary-foreground shrink-0"
+                                        disabled={setBgCheckMutation.isPending}
+                                      >
+                                        {setBgCheckMutation.isPending ? (
+                                          <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                                        ) : null}
+                                        Save
+                                      </Button>
+                                    </motion.form>
+                                  </TableCell>
+                                </TableRow>
+                              )}
+                            </>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

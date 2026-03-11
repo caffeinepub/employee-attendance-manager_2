@@ -31,6 +31,10 @@ interface Props {
 const CHECK_IN_RADIUS_M = 200;
 const AUTO_RESET_HOURS = 10;
 
+function timerKey(employeeId: string) {
+  return `checkInTime_${employeeId}`;
+}
+
 export default function EmployeeDashboard({
   user,
   onLogout,
@@ -50,6 +54,20 @@ export default function EmployeeDashboard({
   const { data: storeLocation } = useGetStoreLocation();
   const checkInMutation = useCheckIn();
   const checkOutMutation = useCheckOut();
+
+  // Restore timer state from localStorage when user changes
+  useEffect(() => {
+    const empId = user.employeeId || user.username;
+    const stored = localStorage.getItem(timerKey(empId));
+    if (stored) {
+      const parsed = Number.parseInt(stored, 10);
+      if (!Number.isNaN(parsed) && parsed > 0) {
+        setWorkStartMs(parsed);
+        setCheckedIn(true);
+        setElapsed(Date.now() - parsed);
+      }
+    }
+  }, [user.employeeId, user.username]);
 
   // Fetch GPS on mount
   useEffect(() => {
@@ -91,13 +109,15 @@ export default function EmployeeDashboard({
   }, [checkedIn, workStartMs]);
 
   const handleAutoReset = useCallback(() => {
+    const empId = user.employeeId || user.username;
     if (timerRef.current) clearInterval(timerRef.current);
     if (autoResetRef.current) clearInterval(autoResetRef.current);
+    localStorage.removeItem(timerKey(empId));
     setCheckedIn(false);
     setWorkStartMs(null);
     setElapsed(0);
     toast.info("Shift auto-reset after 10 hours");
-  }, []);
+  }, [user.employeeId, user.username]);
 
   function formatElapsed(ms: number) {
     const totalSeconds = Math.floor(ms / 1000);
@@ -143,6 +163,8 @@ export default function EmployeeDashboard({
             checkInTime: now.toLocaleTimeString(),
           });
           const startMs = now.getTime();
+          const empId = user.employeeId || user.username;
+          localStorage.setItem(timerKey(empId), startMs.toString());
           setWorkStartMs(startMs);
           setCheckedIn(true);
           setElapsed(0);
@@ -172,6 +194,8 @@ export default function EmployeeDashboard({
         checkOutTime: now.toLocaleTimeString(),
         hoursWorked,
       });
+      const empId = user.employeeId || user.username;
+      localStorage.removeItem(timerKey(empId));
       setCheckedIn(false);
       setWorkStartMs(null);
       setElapsed(diffMs);
