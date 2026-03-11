@@ -10,18 +10,16 @@ async function createVerifiedActor(
   options?: Parameters<typeof createActorWithConfig>[0],
 ): Promise<backendInterface> {
   const actor = await createActorWithConfig(options);
-  // Verify the backend is actually reachable by calling ping with retries
+  // Verify the backend is reachable by calling a real endpoint
   let lastError: unknown;
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
-      await (
-        actor as backendInterface & { ping: () => Promise<boolean> }
-      ).ping();
+      await actor.getAllEmployees();
       return actor;
     } catch (e) {
       lastError = e;
       if (attempt < 4) {
-        await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+        await new Promise((r) => setTimeout(r, 3000));
       }
     }
   }
@@ -45,8 +43,8 @@ export function useActor() {
       });
     },
     staleTime: Number.POSITIVE_INFINITY,
-    retry: 3,
-    retryDelay: 2000,
+    retry: 2,
+    retryDelay: 3000,
     enabled: true,
   });
 
