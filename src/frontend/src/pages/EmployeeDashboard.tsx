@@ -3,8 +3,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   useCheckIn,
   useCheckOut,
+  useGetAllAttendance,
   useGetStoreLocation,
 } from "@/hooks/useQueries";
 import { haversineDistance } from "@/lib/haversine";
@@ -12,6 +21,7 @@ import {
   AlertCircle,
   CheckCircle2,
   Clock,
+  ClockIcon,
   Loader2,
   LogIn,
   LogOut,
@@ -19,7 +29,7 @@ import {
   Navigation,
 } from "lucide-react";
 import { motion } from "motion/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 interface Props {
@@ -54,6 +64,22 @@ export default function EmployeeDashboard({
   const { data: storeLocation } = useGetStoreLocation();
   const checkInMutation = useCheckIn();
   const checkOutMutation = useCheckOut();
+  const { data: allAttendance, isLoading: attendanceLoading } =
+    useGetAllAttendance();
+
+  // Filter attendance records for this employee
+  const myRecords = useMemo(() => {
+    if (!allAttendance) return [];
+    const empId = user.employeeId || "";
+    const entry = allAttendance.find(([id]) => id === empId);
+    return entry ? entry[1] : [];
+  }, [allAttendance, user.employeeId]);
+
+  const totalHours = useMemo(() => {
+    return myRecords.reduce((sum, r) => {
+      return sum + (r.hoursWorked !== undefined ? Number(r.hoursWorked) : 0);
+    }, 0);
+  }, [myRecords]);
 
   // Restore timer state from localStorage when user changes
   useEffect(() => {
@@ -451,8 +477,140 @@ export default function EmployeeDashboard({
             </CardContent>
           </Card>
         </motion.div>
+
+        {/* My Hours */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.3 }}
+        >
+          <Card
+            data-ocid="employee.hours.panel"
+            className="bg-card border-border"
+          >
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <ClockIcon className="w-4 h-4 text-primary" />
+                  My Hours
+                </CardTitle>
+                {myRecords.length > 0 && (
+                  <Badge
+                    variant="outline"
+                    className="text-xs bg-primary/10 text-primary border-primary/30"
+                  >
+                    {totalHours}h total
+                  </Badge>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {attendanceLoading ? (
+                <div
+                  className="flex items-center justify-center gap-2 py-8 text-muted-foreground text-sm"
+                  data-ocid="employee.hours.loading_state"
+                >
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Loading attendance...
+                </div>
+              ) : myRecords.length === 0 ? (
+                <div
+                  className="flex flex-col items-center justify-center gap-2 py-10 text-muted-foreground"
+                  data-ocid="employee.hours.empty_state"
+                >
+                  <Clock className="w-8 h-8 opacity-30" />
+                  <p className="text-sm">No attendance records yet.</p>
+                  <p className="text-xs opacity-70">
+                    Check in to start tracking your hours.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table data-ocid="employee.hours.table">
+                    <TableHeader>
+                      <TableRow className="border-border hover:bg-transparent">
+                        <TableHead className="text-xs text-muted-foreground font-medium">
+                          Date
+                        </TableHead>
+                        <TableHead className="text-xs text-muted-foreground font-medium">
+                          Check In
+                        </TableHead>
+                        <TableHead className="text-xs text-muted-foreground font-medium">
+                          Check Out
+                        </TableHead>
+                        <TableHead className="text-xs text-muted-foreground font-medium text-right">
+                          Hours
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {myRecords.map((record, idx) => (
+                        <TableRow
+                          key={`${record.date}-${idx}`}
+                          data-ocid={`employee.hours.row.${idx + 1}`}
+                          className="border-border"
+                        >
+                          <TableCell className="text-xs font-medium">
+                            {record.date}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground font-mono">
+                            {record.checkInTime}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground font-mono">
+                            {record.checkOutTime ?? (
+                              <span className="text-primary flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse inline-block" />
+                                Active
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-xs text-right">
+                            {record.hoursWorked !== undefined ? (
+                              <Badge
+                                variant="outline"
+                                className="text-xs bg-primary/10 text-primary border-primary/20"
+                              >
+                                {Number(record.hoursWorked)}h
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+
+                  <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">
+                      {myRecords.length} record
+                      {myRecords.length !== 1 ? "s" : ""}
+                    </span>
+                    <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                      <Clock className="w-3.5 h-3.5 text-primary" />
+                      Total: <span className="text-primary">{totalHours}h</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
       </main>
 
+      <div className="max-w-2xl mx-auto px-4 pb-4 flex justify-center">
+        <Button
+          type="button"
+          variant="destructive"
+          size="sm"
+          data-ocid="employee.logout.button"
+          onClick={onLogout}
+          className="gap-2"
+        >
+          <LogOut className="w-4 h-4" />
+          Logout
+        </Button>
+      </div>
       <footer className="border-t border-border py-4 text-center text-xs text-muted-foreground mt-8">
         © {new Date().getFullYear()}. Built with ♥ using{" "}
         <a

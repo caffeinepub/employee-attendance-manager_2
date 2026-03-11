@@ -215,7 +215,7 @@ export default function AdminDashboard({
         }
       }
       const daily = Number(emp.dailySalary || 0);
-      const hourly = daily / 8;
+      const hourly = daily / 10;
       return {
         id: emp.employeeId || "",
         name: emp.name || emp.username,
@@ -795,7 +795,7 @@ export default function AdminDashboard({
                   <div>
                     <CardTitle className="text-base">Salary Report</CardTitle>
                     <CardDescription>
-                      Total pay based on hours worked
+                      Total pay based on hours worked (10-hour workday)
                     </CardDescription>
                   </div>
                   <Button
@@ -1126,6 +1126,19 @@ export default function AdminDashboard({
         </Tabs>
       </main>
 
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-4 flex justify-center">
+        <Button
+          type="button"
+          variant="destructive"
+          size="sm"
+          data-ocid="admin.logout.button"
+          onClick={onLogout}
+          className="gap-2"
+        >
+          <LogOut className="w-4 h-4" />
+          Logout
+        </Button>
+      </div>
       <footer className="border-t border-border py-4 text-center text-xs text-muted-foreground">
         © {new Date().getFullYear()}. Built with ♥ using{" "}
         <a
