@@ -203,7 +203,9 @@ export default function AdminDashboard({
 
   async function handleManualAttendance(e: React.FormEvent) {
     e.preventDefault();
-    const emp = employees.find((e) => e.employeeId === manualForm.employeeId);
+    const emp = employees.find(
+      (e) => e.employeeId?.[0] === manualForm.employeeId,
+    );
     if (!emp) {
       toast.error("Employee not found");
       return;
@@ -455,10 +457,10 @@ export default function AdminDashboard({
                         <SelectContent>
                           {employeeList.map((e) => (
                             <SelectItem
-                              key={e.employeeId || e.username}
-                              value={e.employeeId || ""}
+                              key={e.employeeId?.[0] || e.username}
+                              value={e.employeeId?.[0] || ""}
                             >
-                              {e.name || e.username} ({e.employeeId})
+                              {e.name?.[0] || e.username} ({e.employeeId?.[0]})
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -793,23 +795,23 @@ export default function AdminDashboard({
                         ) : (
                           employeeList.map((e, i) => (
                             <TableRow
-                              key={e.employeeId || e.username}
+                              key={e.employeeId?.[0] || e.username}
                               className="border-border"
                               data-ocid={`admin.employees.row.${i + 1}`}
                             >
                               <TableCell className="font-mono text-xs text-muted-foreground">
-                                {e.employeeId}
+                                {e.employeeId?.[0]}
                               </TableCell>
                               <TableCell className="font-medium text-sm">
-                                {e.name || e.username}
+                                {e.name?.[0] || e.username}
                               </TableCell>
                               <TableCell className="text-sm text-muted-foreground">
                                 {e.username}
                               </TableCell>
                               <TableCell className="text-sm text-primary font-medium">
                                 ₹
-                                {e.dailySalary != null
-                                  ? String(e.dailySalary)
+                                {e.dailySalary?.[0] != null
+                                  ? String(e.dailySalary[0])
                                   : "—"}
                               </TableCell>
                               <TableCell>
@@ -822,11 +824,11 @@ export default function AdminDashboard({
                                     onClick={() => {
                                       setEditingEmployee(e);
                                       setEditForm({
-                                        name: e.name || "",
-                                        employeeId: e.employeeId || "",
+                                        name: e.name?.[0] ?? "",
+                                        employeeId: e.employeeId?.[0] ?? "",
                                         dailySalary:
-                                          e.dailySalary != null
-                                            ? String(e.dailySalary)
+                                          e.dailySalary?.[0] != null
+                                            ? String(e.dailySalary[0])
                                             : "",
                                       });
                                     }}

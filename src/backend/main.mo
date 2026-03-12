@@ -5,10 +5,7 @@ import Int "mo:core/Int";
 import Runtime "mo:core/Runtime";
 import Nat "mo:core/Nat";
 
-
-// with clause is mandatory because of new backgroundCheckMap in Main actor
-
-actor {
+persistent actor {
   module User {
     public type Role = { #admin; #employee };
 
@@ -62,25 +59,29 @@ actor {
   let backgroundCheckMap = Map.empty<Text, Check>();
 
   do {
-    usersMap.add("admin", {
-      username = "admin";
-      password = "admin123";
-      role = #admin;
-      employeeId = null;
-      dailySalary = null;
-      name = ?("Admin");
-    });
+    if (not usersMap.containsKey("admin")) {
+      usersMap.add("admin", {
+        username = "admin";
+        password = "admin123";
+        role = #admin;
+        employeeId = null;
+        dailySalary = null;
+        name = ?("Admin");
+      });
+    };
 
-    usersMap.add("sukh", {
-      username = "sukh";
-      password = "1234";
-      role = #employee;
-      employeeId = ?("EMP001");
-      dailySalary = ?800;
-      name = ?("Sukh Ghuman");
-    });
+    if (not usersMap.containsKey("sukh")) {
+      usersMap.add("sukh", {
+        username = "sukh";
+        password = "1234";
+        role = #employee;
+        employeeId = ?("EMP001");
+        dailySalary = ?800;
+        name = ?("Sukh Ghuman");
+      });
 
-    attendanceMap.add("EMP001", List.empty<Record>());
+      attendanceMap.add("EMP001", List.empty<Record>());
+    };
   };
 
   func padId(n : Nat) : Text {

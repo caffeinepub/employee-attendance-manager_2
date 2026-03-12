@@ -71,7 +71,7 @@ export default function EmployeeDashboard({
   // Filter attendance records for this employee
   const myRecords = useMemo(() => {
     if (!allAttendance) return [];
-    const empId = user.employeeId || "";
+    const empId = user.employeeId?.[0] || "";
     const entry = allAttendance.find(([id]) => id === empId);
     return entry ? entry[1] : [];
   }, [allAttendance, user.employeeId]);
@@ -84,7 +84,7 @@ export default function EmployeeDashboard({
 
   // Restore timer state from localStorage when user changes
   useEffect(() => {
-    const empId = user.employeeId || user.username;
+    const empId = user.employeeId?.[0] || user.username;
     const stored = localStorage.getItem(timerKey(empId));
     if (stored) {
       const parsed = Number.parseInt(stored, 10);
@@ -136,7 +136,7 @@ export default function EmployeeDashboard({
   }, [checkedIn, workStartMs]);
 
   const handleAutoReset = useCallback(() => {
-    const empId = user.employeeId || user.username;
+    const empId = user.employeeId?.[0] || user.username;
     if (timerRef.current) clearInterval(timerRef.current);
     if (autoResetRef.current) clearInterval(autoResetRef.current);
     localStorage.removeItem(timerKey(empId));
@@ -187,19 +187,19 @@ export default function EmployeeDashboard({
         const now = new Date();
         try {
           await checkInMutation.mutateAsync({
-            employeeId: user.employeeId || "",
-            employeeName: user.name || user.username,
+            employeeId: user.employeeId?.[0] || "",
+            employeeName: user.name?.[0] || user.username,
             date: now.toLocaleDateString(),
             checkInTime: now.toLocaleTimeString(),
           });
           const startMs = now.getTime();
-          const empId = user.employeeId || user.username;
+          const empId = user.employeeId?.[0] || user.username;
           localStorage.setItem(timerKey(empId), startMs.toString());
           setWorkStartMs(startMs);
           setCheckedIn(true);
           setElapsed(0);
           setLocationCheckError("");
-          onCheckIn(user.name || user.username);
+          onCheckIn(user.name?.[0] || user.username);
           setLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude });
           toast.success("Checked in successfully!");
         } catch {
@@ -221,11 +221,11 @@ export default function EmployeeDashboard({
 
     try {
       await checkOutMutation.mutateAsync({
-        employeeId: user.employeeId || "",
+        employeeId: user.employeeId?.[0] || "",
         checkOutTime: now.toLocaleTimeString(),
         hoursWorked,
       });
-      const empId = user.employeeId || user.username;
+      const empId = user.employeeId?.[0] || user.username;
       localStorage.removeItem(timerKey(empId));
       setCheckedIn(false);
       setWorkStartMs(null);
@@ -271,10 +271,12 @@ export default function EmployeeDashboard({
         >
           <h1 className="text-2xl font-display font-bold text-foreground">
             Welcome back,{" "}
-            <span className="text-primary">{user.name || user.username}</span>
+            <span className="text-primary">
+              {user.name?.[0] || user.username}
+            </span>
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Employee ID: {user.employeeId} &middot;{" "}
+            Employee ID: {user.employeeId?.[0]} &middot;{" "}
             {new Date().toLocaleDateString("en-IN", {
               weekday: "long",
               year: "numeric",
