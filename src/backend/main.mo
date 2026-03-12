@@ -132,6 +132,53 @@ actor {
     attendanceMap.add(paddedId, List.empty<Record>());
   };
 
+  // Update employee (name, employeeId, dailySalary)
+  public shared func updateEmployee(username : Text, name : Text, employeeId : Text, dailySalary : Nat) : async () {
+    switch (usersMap.get(username)) {
+      case (null) { Runtime.trap("Employee not found") };
+      case (?user) {
+        let oldEmpId = switch (user.employeeId) {
+          case (null) { "" };
+          case (?id) { id };
+        };
+        let updated : UserData = {
+          user with
+          name = ?name;
+          employeeId = ?employeeId;
+          dailySalary = ?dailySalary;
+        };
+        usersMap.add(username, updated);
+        // migrate attendance records to new employeeId if changed
+        if (oldEmpId != employeeId and oldEmpId != "") {
+          switch (attendanceMap.get(oldEmpId)) {
+            case (null) {};
+            case (?recs) {
+              attendanceMap.remove(oldEmpId);
+              attendanceMap.add(employeeId, recs);
+            };
+          };
+        };
+      };
+    };
+  };
+
+  // Delete employee
+  public shared func deleteEmployee(username : Text) : async () {
+    switch (usersMap.get(username)) {
+      case (null) { Runtime.trap("Employee not found") };
+      case (?user) {
+        let empId = switch (user.employeeId) {
+          case (null) { "" };
+          case (?id) { id };
+        };
+        usersMap.remove(username);
+        if (empId != "") {
+          attendanceMap.remove(empId);
+        };
+      };
+    };
+  };
+
   public query func getAllEmployees() : async [UserData] {
     usersMap.toArray()
       .filter(func(e) {

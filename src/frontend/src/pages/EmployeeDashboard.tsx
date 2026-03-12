@@ -55,6 +55,7 @@ export default function EmployeeDashboard({
     lon: number;
   } | null>(null);
   const [locationError, setLocationError] = useState("");
+  const [locationCheckError, setLocationCheckError] = useState("");
   const [checkedIn, setCheckedIn] = useState(false);
   const [workStartMs, setWorkStartMs] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
@@ -178,6 +179,9 @@ export default function EmployeeDashboard({
           toast.error(
             `You are ${Math.round(dist)}m from the store. Must be within ${CHECK_IN_RADIUS_M}m.`,
           );
+          setLocationCheckError(
+            `You are ${Math.round(dist)}m away from the work location. Check-in is only allowed within ${CHECK_IN_RADIUS_M}m of the store.`,
+          );
           return;
         }
         const now = new Date();
@@ -194,6 +198,7 @@ export default function EmployeeDashboard({
           setWorkStartMs(startMs);
           setCheckedIn(true);
           setElapsed(0);
+          setLocationCheckError("");
           onCheckIn(user.name || user.username);
           setLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude });
           toast.success("Checked in successfully!");
@@ -225,6 +230,7 @@ export default function EmployeeDashboard({
       setCheckedIn(false);
       setWorkStartMs(null);
       setElapsed(diffMs);
+      setLocationCheckError("");
       toast.success(`Checked out. Total: ${formatElapsed(diffMs)}`);
     } catch {
       toast.error("Check-out failed. Please try again.");
@@ -362,6 +368,22 @@ export default function EmployeeDashboard({
                   <AlertCircle className="w-3 h-3 inline mr-1" />
                   Store location not set. Contact admin.
                 </p>
+              )}
+              {locationCheckError && (
+                <div
+                  className="mt-4 bg-red-500/15 border border-red-500/40 rounded-lg p-4 flex gap-3"
+                  data-ocid="employee.location_denied.error_state"
+                >
+                  <MapPin className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-red-700 dark:text-red-400">
+                      {locationCheckError}
+                    </p>
+                    <p className="text-xs text-red-600/80 dark:text-red-400/70 mt-1">
+                      Please go to the designated work location to check in.
+                    </p>
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>

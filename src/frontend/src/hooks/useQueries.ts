@@ -94,6 +94,42 @@ export function useAddEmployee() {
   });
 }
 
+export function useUpdateEmployee() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      username: string;
+      name: string;
+      employeeId: string;
+      dailySalary: bigint;
+    }) => {
+      if (!actor) throw new Error("Not connected");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (actor as any).updateEmployee(
+        args.username,
+        args.name,
+        args.employeeId,
+        args.dailySalary,
+      );
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["employees"] }),
+  });
+}
+
+export function useDeleteEmployee() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (username: string) => {
+      if (!actor) throw new Error("Not connected");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (actor as any).deleteEmployee(username);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["employees"] }),
+  });
+}
+
 export function useAddManualAttendance() {
   const { actor } = useActor();
   const qc = useQueryClient();

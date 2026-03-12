@@ -40,6 +40,8 @@ export enum Role {
 }
 export interface backendInterface {
     addEmployee(username: string, password: string, dailySalary: bigint, name: string): Promise<void>;
+    updateEmployee(username: string, name: string, employeeId: string, dailySalary: bigint): Promise<void>;
+    deleteEmployee(username: string): Promise<void>;
     addManualAttendance(employeeId: string, employeeName: string, date: string, checkInTime: string, checkOutTime: string | null, hoursWorked: bigint | null): Promise<void>;
     checkIn(employeeId: string, employeeName: string, date: string, checkInTime: string): Promise<void>;
     checkOut(employeeId: string, checkOutTime: string, hoursWorked: bigint): Promise<void>;

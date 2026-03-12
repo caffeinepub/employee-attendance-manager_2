@@ -1,22 +1,26 @@
 # Employee Attendance Manager
 
 ## Current State
-Login page shows "Connecting to server..." based on whether the JS actor object is created. However, creating the actor object does not verify the backend canister is actually responding. If login is attempted right after the actor is created but before the canister is ready, any backend error (network, canister cold-start, etc.) surfaces as "Invalid username or password."
+Admin dashboard has an employee list showing ID, name, username, and daily salary with no edit or delete options. Employee check-in validates the GPS geofence (200m) and shows a toast error when out-of-range, but the error is not prominently displayed inline on the dashboard. Backend has no deleteEmployee or updateEmployee functions.
 
 ## Requested Changes (Diff)
 
 ### Add
-- `ping` query function to backend that simply returns `true`
-- Actor readiness check in `useActor`: after actor is created, call `ping()` to confirm backend is responsive; only mark actor as ready once ping succeeds
+- Backend: `deleteEmployee(username: Text)` — removes employee from usersMap and attendanceMap
+- Backend: `updateEmployee(username: Text, name: Text, employeeId: Text, dailySalary: Nat)` — updates employee fields
+- Admin Dashboard: Edit button per employee row opens an inline/modal form to edit name, employeeId, and daily salary
+- Admin Dashboard: Delete button per employee row with confirmation before deleting
+- Employee Dashboard: Prominent inline error card/alert shown when check-in is attempted from outside the allowed geofence radius
 
 ### Modify
-- `useActor` hook: add ping verification step so `actor` is only non-null when the backend has confirmed it is reachable
-- `LoginPage`: distinguish between credential errors and connection/unexpected errors with clearer messages
+- Employee list table in admin: add Actions column with Edit and Delete buttons
+- Check-in flow in EmployeeDashboard: store location-error message in state and display it as a visible alert beneath the check-in button
 
 ### Remove
-- Nothing
+- Nothing removed
 
 ## Implementation Plan
-1. Add `public query func ping() : async Bool` to `src/backend/main.mo`
-2. Update `useActor.ts` to call `actor.ping()` after creation and only return a ready actor on success, retrying on failure
-3. Update `LoginPage.tsx` error handling to show "Connection error, please try again" for non-credential errors
+1. Add `deleteEmployee` and `updateEmployee` to backend/main.mo
+2. Regenerate/update backend.d.ts bindings (via generated types)
+3. In AdminDashboard: add edit modal/dialog state, edit form (name, employeeId, dailySalary), delete confirmation dialog, mutation hooks for both operations, and Actions column in employee table
+4. In EmployeeDashboard: add locationCheckError state, set it when distance > geofenceRadius during check-in attempt, display as a red alert card below check-in section

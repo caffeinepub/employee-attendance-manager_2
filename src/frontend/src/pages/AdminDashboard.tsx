@@ -1,4 +1,14 @@
 import type { UserData } from "@/backend.d";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,6 +18,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -30,12 +47,14 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   useAddEmployee,
   useAddManualAttendance,
+  useDeleteEmployee,
   useGetAllAttendance,
   useGetAllBackgroundChecks,
   useGetAllEmployees,
   useGetStoreLocation,
   useSetBackgroundCheck,
   useSetStoreLocation,
+  useUpdateEmployee,
 } from "@/hooks/useQueries";
 import {
   Bell,
@@ -46,9 +65,11 @@ import {
   Loader2,
   LogOut,
   MapPin,
+  Pencil,
   Plus,
   RefreshCw,
   ShieldCheck,
+  Trash2,
   Users,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -98,6 +119,18 @@ export default function AdminDashboard({
   const setStoreMutation = useSetStoreLocation();
   const addEmployeeMutation = useAddEmployee();
   const addManualMutation = useAddManualAttendance();
+  const updateEmployeeMutation = useUpdateEmployee();
+  const deleteEmployeeMutation = useDeleteEmployee();
+
+  const [editingEmployee, setEditingEmployee] = useState<UserData | null>(null);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    employeeId: "",
+    dailySalary: "",
+  });
+  const [deletingEmployee, setDeletingEmployee] = useState<UserData | null>(
+    null,
+  );
   const setBgCheckMutation = useSetBackgroundCheck();
 
   // Salary state
@@ -741,13 +774,16 @@ export default function AdminDashboard({
                           <TableHead className="text-muted-foreground text-xs">
                             Daily Salary
                           </TableHead>
+                          <TableHead className="text-muted-foreground text-xs">
+                            Actions
+                          </TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {employeeList.length === 0 ? (
                           <TableRow>
                             <TableCell
-                              colSpan={4}
+                              colSpan={5}
                               className="text-center py-6 text-muted-foreground text-sm"
                               data-ocid="admin.employees.empty_state"
                             >
@@ -775,6 +811,38 @@ export default function AdminDashboard({
                                 {e.dailySalary != null
                                   ? String(e.dailySalary)
                                   : "—"}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 w-7 p-0"
+                                    data-ocid={`admin.employees.edit_button.${i + 1}`}
+                                    onClick={() => {
+                                      setEditingEmployee(e);
+                                      setEditForm({
+                                        name: e.name || "",
+                                        employeeId: e.employeeId || "",
+                                        dailySalary:
+                                          e.dailySalary != null
+                                            ? String(e.dailySalary)
+                                            : "",
+                                      });
+                                    }}
+                                  >
+                                    <Pencil className="w-3.5 h-3.5" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    data-ocid={`admin.employees.delete_button.${i + 1}`}
+                                    onClick={() => setDeletingEmployee(e)}
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
                           ))
@@ -1150,6 +1218,125 @@ export default function AdminDashboard({
           caffeine.ai
         </a>
       </footer>
+      <Dialog
+        open={!!editingEmployee}
+        onOpenChange={(open) => !open && setEditingEmployee(null)}
+      >
+        <DialogContent data-ocid="admin.edit_employee.dialog">
+          <DialogHeader>
+            <DialogTitle>Edit Employee</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>Name</Label>
+              <Input
+                value={editForm.name}
+                onChange={(e) =>
+                  setEditForm((p) => ({ ...p, name: e.target.value }))
+                }
+                placeholder="Full name"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Employee ID</Label>
+              <Input
+                value={editForm.employeeId}
+                onChange={(e) =>
+                  setEditForm((p) => ({ ...p, employeeId: e.target.value }))
+                }
+                placeholder="EMP001"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Daily Salary (₹)</Label>
+              <Input
+                type="number"
+                value={editForm.dailySalary}
+                onChange={(e) =>
+                  setEditForm((p) => ({ ...p, dailySalary: e.target.value }))
+                }
+                placeholder="500"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              data-ocid="admin.edit_employee.cancel_button"
+              onClick={() => setEditingEmployee(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              data-ocid="admin.edit_employee.save_button"
+              disabled={updateEmployeeMutation.isPending}
+              onClick={async () => {
+                if (!editingEmployee) return;
+                try {
+                  await updateEmployeeMutation.mutateAsync({
+                    username: editingEmployee.username,
+                    name: editForm.name,
+                    employeeId: editForm.employeeId,
+                    dailySalary: BigInt(editForm.dailySalary || "0"),
+                  });
+                  toast.success("Employee updated successfully");
+                  setEditingEmployee(null);
+                  refetchEmployees();
+                } catch {
+                  toast.error("Failed to update employee");
+                }
+              }}
+            >
+              {updateEmployeeMutation.isPending ? (
+                <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+              ) : null}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <AlertDialog
+        open={!!deletingEmployee}
+        onOpenChange={(open) => !open && setDeletingEmployee(null)}
+      >
+        <AlertDialogContent data-ocid="admin.delete_employee.dialog">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Employee</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete{" "}
+              {deletingEmployee?.name || deletingEmployee?.username}? This
+              cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              data-ocid="admin.delete_employee.cancel_button"
+              onClick={() => setDeletingEmployee(null)}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              data-ocid="admin.delete_employee.confirm_button"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                if (!deletingEmployee) return;
+                try {
+                  await deleteEmployeeMutation.mutateAsync(
+                    deletingEmployee.username,
+                  );
+                  toast.success("Employee deleted successfully");
+                  setDeletingEmployee(null);
+                  refetchEmployees();
+                } catch {
+                  toast.error("Failed to delete employee");
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
